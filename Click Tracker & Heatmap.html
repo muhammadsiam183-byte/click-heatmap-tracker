@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Click Tracker &amp; Heatmap</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap">
+<style>
+:root{--bg:#e9eef2;--paper:#fff;--ink:#14202b;--mute:#5b6b78;--line:#cdd7de;--acc:#0e7c86;--acc-ink:#fff;--panel:#14202b;--panel-ink:#e8f0f5;--panel-mute:#8fa3b2;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1117;--paper:#131c25;--ink:#e8f0f5;--mute:#8fa3b2;--line:#25323d;--acc:#2fc4d0;--acc-ink:#04262a;--panel:#1a2631;--panel-ink:#e8f0f5;--panel-mute:#8fa3b2}}
+:root[data-theme="dark"]{--bg:#0b1117;--paper:#131c25;--ink:#e8f0f5;--mute:#8fa3b2;--line:#25323d;--acc:#2fc4d0;--acc-ink:#04262a;--panel:#1a2631;--panel-ink:#e8f0f5;--panel-mute:#8fa3b2}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Bricolage Grotesque",system-ui,sans-serif}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;max-width:1240px;margin:0 auto;padding:20px}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+#site{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:crosshair}
+#site header{display:flex;justify-content:space-between;align-items:center;padding:18px 28px;border-bottom:1px solid var(--line)}
+#site header b{font-size:22px;font-weight:800;letter-spacing:-.02em}
+#site nav{display:flex;gap:18px;color:var(--mute)}
+#site nav a{color:inherit;text-decoration:none}
+.hero{padding:64px 28px 56px;max-width:640px}
+.hero h1{font-size:clamp(34px,6vw,58px);line-height:1.02;letter-spacing:-.03em;margin:0 0 16px;font-weight:800}
+.hero p{color:var(--mute);margin:0 0 24px;max-width:46ch}
+.btn{font:inherit;font-weight:600;border:0;border-radius:4px;padding:11px 20px;background:var(--acc);color:var(--acc-ink);cursor:pointer}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--ink);margin-left:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;padding:0 28px 40px}
+.item{border:1px solid var(--line);border-radius:4px;padding:16px}
+.item .swatch{height:110px;border-radius:2px;margin-bottom:12px}
+.item h3{margin:0;font-size:18px}.item p{margin:2px 0 12px;color:var(--mute)}
+.band{background:var(--panel);color:var(--panel-ink);padding:36px 28px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.band h2{margin:0;font-size:24px;max-width:18ch;line-height:1.1}
+.band input{font:inherit;padding:11px 12px;border-radius:4px;border:1px solid var(--panel-mute);background:transparent;color:inherit;min-width:200px}
+footer{padding:24px 28px;color:var(--mute);display:flex;gap:20px;flex-wrap:wrap}
+#heat,#marks{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.dot{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#e5322d;color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+.rip{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid #e5322d;animation:rip .6s ease-out forwards}
+@keyframes rip{to{transform:scale(4);opacity:0}}
+@media(prefers-reduced-motion:reduce){.rip{animation:none;opacity:0}}
+aside{align-self:start;position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px);background:var(--panel);color:var(--panel-ink);border-radius:6px;padding:18px}
+aside h2{margin:0 0 4px;font-size:20px}
+aside small{color:var(--panel-mute)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:16px 0}
+.seg button{font:inherit;font-size:14px;color:var(--panel-ink);background:transparent;border:1px solid #3a4b59;border-radius:4px;padding:8px 6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.seg button:focus-visible,.act button:focus-visible,.btn:focus-visible{outline:2px solid #ffe600;outline-offset:2px}
+.stats{display:flex;gap:18px;margin:6px 0 14px}
+.stats div b{display:block;font-size:26px;line-height:1}
+.stats span{font-size:12px;color:var(--panel-mute)}
+.legend{height:8px;border-radius:4px;background:linear-gradient(90deg,#1d3bff,#00e0c0,#ffe600,#ff2a1f);margin:4px 0 2px}
+.legend+div{display:flex;justify-content:space-between;font-size:12px;color:var(--panel-mute)}
+#log{list-style:none;margin:14px 0 0;padding:0;font-size:13px;max-height:230px;overflow:auto}
+#log li{padding:6px 0;border-top:1px solid #2c3b47;display:flex;justify-content:space-between;gap:8px}
+#log li span:last-child{color:var(--panel-mute);white-space:nowrap}
+#log .empty{color:var(--panel-mute)}
+.act{display:flex;gap:8px;margin-top:14px}
+.act button{flex:1;font:inherit;font-size:14px;border-radius:4px;padding:8px;cursor:pointer;background:#2a3a47;color:var(--panel-ink);border:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main id="site" aria-label="Demo website being tracked">
+    <header><b>Tern Coffee</b><nav><a href="#" data-hot>Beans</a><a href="#" data-hot>Brew guides</a><a href="#" data-hot>Cart (0)</a></nav></header>
+    <section class="hero">
+      <h1>Small-batch coffee, roasted this week.</h1>
+      <p>Pick a bag, we roast it Monday and ship it Tuesday. Click anywhere on this page &mdash; every click is recorded.</p>
+      <button class="btn" data-hot>Shop beans</button><button class="btn alt" data-hot>How it works</button>
+    </section>
+    <section class="grid">
+      <div class="item"><div class="swatch" style="background:#b86b3a"></div><h3>Ethiopia Guji</h3><p>Blueberry, jasmine</p><button class="btn" data-hot>Add to cart</button></div>
+      <div class="item"><div class="swatch" style="background:#6b4a2e"></div><h3>Colombia Huila</h3><p>Caramel, red apple</p><button class="btn" data-hot>Add to cart</button></div>
+      <div class="item"><div class="swatch" style="background:#2f4a3f"></div><h3>Kenya Nyeri</h3><p>Blackcurrant, citrus</p><button class="btn" data-hot>Add to cart</button></div>
+    </section>
+    <section class="band"><h2>Get the Monday roast list.</h2><span><input placeholder="you@example.com" aria-label="Email"> <button class="btn" data-hot>Subscribe</button></span></section>
+    <footer><span>Shipping</span><span>Wholesale</span><span>Contact</span></footer>
+    <canvas id="heat"></canvas>
+    <div id="marks"></div>
+  </main>
+
+  <aside>
+    <h2>Interaction tracker</h2>
+    <small>Data stays in this browser.</small>
+    <div class="seg" role="group" aria-label="View">
+      <button data-m="clicks" aria-pressed="true">Click points</button>
+      <button data-m="hc" aria-pressed="false">Click heatmap</button>
+      <button data-m="hm" aria-pressed="false">Mouse heatmap</button>
+      <button data-m="off" aria-pressed="false">Hide overlay</button>
+    </div>
+    <div class="stats"><div><b id="nc">0</b><span>clicks</span></div><div><b id="nm">0</b><span>mouse samples</span></div><div><b id="top">&ndash;</b><span>top target</span></div></div>
+    <div class="legend"></div><div><span>fewer</span><span>more</span></div>
+    <ul id="log"></ul>
+    <div class="act"><button id="sample">Add sample data</button><button id="clear">Clear all</button></div>
+  </aside>
+</div>
+
+<script>
+(function(){
+var KEY='click-heat-v1', D={clicks:[],moves:[]}, mode='clicks';
+try{var s=localStorage.getItem(KEY);if(s)D=JSON.parse(s);if(!D.clicks||!D.moves)D={clicks:[],moves:[]}}catch(e){}
+var site=document.getElementById('site'),cv=document.getElementById('heat'),ctx=cv.getContext('2d',{willReadFrequently:true}),marks=document.getElementById('marks');
+
+// colour palette for the heatmap (index = intensity 0..255)
+var pc=document.createElement('canvas');pc.width=1;pc.height=256;
+var pctx=pc.getContext('2d'),pg=pctx.createLinearGradient(0,0,0,256);
+pg.addColorStop(0,'#1d3bff');pg.addColorStop(.4,'#00e0c0');pg.addColorStop(.65,'#ffe600');pg.addColorStop(1,'#ff2a1f');
+pctx.fillStyle=pg;pctx.fillRect(0,0,1,256);var pal=pctx.getImageData(0,0,1,256).data;
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
+function desc(t){var n=(t.tagName||'').toLowerCase(),x=(t.textContent||'').trim().replace(/\s+/g,' ').slice(0,22);
+  return n+(x&&n!=='section'&&n!=='main'?' "'+x+'"':'')}
+
+function heat(pts,r){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  var W=cv.width;
+  pts.forEach(function(p){var x=p.x*W,y=p.y,g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba(0,0,0,.22)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2)});
+  var im=ctx.getImageData(0,0,cv.width,cv.height),d=im.data;
+  for(var i=3;i<d.length;i+=4){var a=d[i];if(a){var j=a*4;d[i-3]=pal[j];d[i-2]=pal[j+1];d[i-1]=pal[j+2];d[i]=Math.min(a*1.4,235)}}
+  ctx.putImageData(im,0,0);
+}
+
+function render(){
+  cv.width=site.clientWidth;cv.height=site.clientHeight;ctx.clearRect(0,0,cv.width,cv.height);marks.innerHTML='';
+  if(mode==='clicks'){
+    var f=document.createDocumentFragment();
+    D.clicks.slice(-400).forEach(function(c,i){var e=document.createElement('span');e.className='dot';
+      e.style.left=(c.x*100)+'%';e.style.top=c.y+'px';e.textContent=(D.clicks.length-Math.min(400,D.clicks.length)+i+1)%100;f.appendChild(e)});
+    marks.appendChild(f);
+  }else if(mode==='hc')heat(D.clicks,34);
+  else if(mode==='hm')heat(D.moves,26);
+  stats();
+}
+
+function stats(){
+  document.getElementById('nc').textContent=D.clicks.length;
+  document.getElementById('nm').textContent=D.moves.length;
+  var cnt={},best='\u2013',bn=0;
+  D.clicks.forEach(function(c){cnt[c.el]=(cnt[c.el]||0)+1;if(cnt[c.el]>bn){bn=cnt[c.el];best=c.el}});
+  var t=document.getElementById('top');t.textContent=bn?bn+'\u00d7':'\u2013';t.title=best;
+  var ul=document.getElementById('log');ul.innerHTML='';
+  if(!D.clicks.length){ul.innerHTML='<li class="empty">No clicks yet. Click anywhere on the page on the left.</li>';return}
+  D.clicks.slice(-8).reverse().forEach(function(c){var li=document.createElement('li');
+    var a=document.createElement('span');a.textContent=c.el;
+    var b=document.createElement('span');b.textContent=Math.round(c.x*100)+'%, '+Math.round(c.y)+'px';
+    li.appendChild(a);li.appendChild(b);ul.appendChild(li)});
+}
+
+site.addEventListener('click',function(e){
+  var r=site.getBoundingClientRect(),c={x:(e.clientX-r.left)/r.width,y:e.clientY-r.top,t:Date.now(),el:desc(e.target)};
+  if(e.target.closest('a'))e.preventDefault();
+  D.clicks.push(c);save();
+  if(mode==='clicks'){var rp=document.createElement('span');rp.className='rip';rp.style.left=(c.x*100)+'%';rp.style.top=c.y+'px';marks.appendChild(rp);setTimeout(function(){rp.remove()},650)}
+  render();
+});
+
+var last=0;
+site.addEventListener('mousemove',function(e){
+  var n=Date.now();if(n-last<90)return;last=n;
+  var r=site.getBoundingClientRect();D.moves.push({x:(e.clientX-r.left)/r.width,y:e.clientY-r.top});
+  if(D.moves.length>4000)D.moves.shift();
+  if(D.moves.length%25===0){save();if(mode==='hm')render();else stats()}
+});
+
+document.querySelectorAll('.seg button').forEach(function(b){b.addEventListener('click',function(){
+  mode=b.dataset.m;document.querySelectorAll('.seg button').forEach(function(x){x.setAttribute('aria-pressed',x===b)});render()})});
+
+document.getElementById('clear').addEventListener('click',function(){D={clicks:[],moves:[]};save();render()});
+document.getElementById('sample').addEventListener('click',function(){
+  var sr=site.getBoundingClientRect();
+  document.querySelectorAll('[data-hot]').forEach(function(el,k){
+    var r=el.getBoundingClientRect(),cx=r.left+r.width/2-sr.left,cy=r.top+r.height/2-sr.top,n=10+((k*7)%30);
+    for(var i=0;i<n;i++){var gx=(Math.random()+Math.random()+Math.random()-1.5)*r.width*.5,gy=(Math.random()+Math.random()+Math.random()-1.5)*r.height;
+      D.clicks.push({x:Math.min(1,Math.max(0,(cx+gx)/sr.width)),y:Math.max(0,cy+gy),t:Date.now(),el:desc(el)});
+      D.moves.push({x:Math.min(1,Math.max(0,(cx+gx*1.6)/sr.width)),y:Math.max(0,cy+gy*1.6)})}
+  });
+  save();render();
+});
+
+window.addEventListener('resize',render);
+render();
+})();
+</script>
+</body>
+</html>
